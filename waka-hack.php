@@ -1,18 +1,18 @@
 <?php
 
-$apiKey = '';
-$srcDir = '';
-$project = '';
-$language = '';
-$pathPrefix = '';
-$extensionToMatch = '';
-$numWorkingFiles = 0;
-$time = 0;
+$config = [
+    'apiKey' => '',
+    'srcDir' => '',
+    'project' => '',
+    'language' => '',
+    'pathPrefix' => '',
+    'extensionToMatch' => '',
+    'numWorkingFiles' => 0,
+    'time' => 0,
+];
 
-function argParse ()
+function argParse ($argv, &$config = [])
 {
-    global $apiKey, $srcDir, $project, $language, $pathPrefix, $extensionToMatch, $numWorkingFiles, $time, $argv;
-
     $args = getopt('', ['apiKey:', 'srcDir:', 'project:', 'lang:', 'prefix:', 'ext:', 'workingFiles:', 'time:']);
     echo 'Start working with settings:' . PHP_EOL;
     foreach ($args as $key => $value) {
@@ -23,22 +23,19 @@ function argParse ()
         exit();
     }
 
-    $apiKey = $args['apiKey'];
-    $srcDir = $args['srcDir'];
-    $project = $args['project'];
-    $language = $args['lang'];
-    $pathPrefix = $args['prefix'] ?: '';
-    $extensionToMatch = '.' . ltrim($args['ext'], '.');
-    $numWorkingFiles = (int)$args['workingFiles'];
-    $time = (int)$args['time'];
+    $config['apiKey'] = $args['apiKey'];
+    $config['srcDir'] = $args['srcDir'];
+    $config['project'] = $args['project'];
+    $config['language'] = $args['lang'];
+    $config['pathPrefix'] = $args['prefix'] ?: '';
+    $config['extensionToMatch'] = '.' . ltrim($args['ext'], '.');
+    $config['numWorkingFiles'] = (int)$args['workingFiles'];
+    $config['time'] = (int)$args['time'];
 }
 
-function populateFiles ($initDir)
+function populateFiles ($initDir, $config)
 {
     $files = [];
-
-    global $pathPrefix;
-    global $extensionToMatch;
 
     $dirIterator = new DirectoryIterator($initDir);
 
@@ -50,30 +47,25 @@ function populateFiles ($initDir)
             $files = array_merge($files, populateFiles($entity->getPathname()));
         }
 
-        if (strpos($entity->getFilename(), $extensionToMatch) !== false) {
-            $files[] = $pathPrefix . $entity->getPathname();
+        if (strpos($entity->getFilename(), $config['extensionToMatch']) !== false) {
+            $files[] = $config['pathPrefix'] . $entity->getPathname();
         }
     }
 
     return $files;
 }
 
-function sendHeartbeat ()
+function sendHeartbeat ($workingFiles, $config)
 {
-    global $apiKey;
-    global $project;
-    global $language;
-    global $workingFiles;
-    global $time;
 
     $headers = [
-        'Authorization: Basic ' . base64_encode($apiKey),
+        'Authorization: Basic ' . base64_encode($config['apiKey']),
         'User-agent: wakatime/6.2.0 (Linux-2.6.32-39-pve-x86_64-with-centos-6.8-Final) Python2.6.6.final.0 PhpStorm/2016.3.1 PhpStorm-wakatime/7.0.9',
     ];
 
     $lines = rand(20, 200);
     $endOfTime = new DateTime();
-    $endOfTime->modify("+{$time} min");
+    $endOfTime->modify("+{$config['time']} min");
 
     while (time() < $endOfTime->getTimeStamp()) {
         $file = $workingFiles[array_rand($workingFiles)];
@@ -81,8 +73,8 @@ function sendHeartbeat ()
             'entity' => $file,
             'type' => 'file',
             'time' => (float)(time() . '.1'),
-            'project' => $project,
-            'language' => $language,
+            'project' => $config['project'],
+            'language' => $config['language'],
             'lines' => $lines,
             'is_write' => true,
         ];
@@ -101,12 +93,12 @@ function sendHeartbeat ()
     }
 }
 
-argParse();
+argParse($argv, $config);
 
 $workingFiles = [];
-$files = populateFiles($srcDir);
-foreach (array_rand($files, $numWorkingFiles) as $key) {
+$files = populateFiles($config['srcDir'], $config);
+foreach (array_rand($files, $config['numWorkingFiles']) as $key) {
     $workingFiles[] = $files[$key];
 }
 
-sendHeartbeat();
+sendHeartbeat($workingFiles, $config);
