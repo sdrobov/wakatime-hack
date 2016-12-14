@@ -11,7 +11,7 @@ $config = [
     'time' => 0,
 ];
 
-function argParse ($argv, &$config = [])
+function argParse($argv, &$config = [])
 {
     $args = getopt('', ['apiKey:', 'srcDir:', 'project:', 'lang:', 'prefix:', 'ext:', 'workingFiles:', 'time:']);
     echo 'Start working with settings:' . PHP_EOL;
@@ -33,7 +33,7 @@ function argParse ($argv, &$config = [])
     $config['time'] = (int)$args['time'];
 }
 
-function populateFiles ($initDir, $config)
+function populateFiles($initDir, $config)
 {
     $files = [];
 
@@ -55,7 +55,7 @@ function populateFiles ($initDir, $config)
     return $files;
 }
 
-function sendHeartbeat ($workingFiles, $config)
+function sendHeartbeat($workingFiles, $config)
 {
 
     $headers = [
